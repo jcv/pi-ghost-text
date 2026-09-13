@@ -115,3 +115,7 @@ If no suggestion appears:
 ```bash
 npm test   # node --test, no dependencies (requires Node ≥ 23.6)
 ```
+
+## Prior art
+
+Inspired by [supi-prompt-suggestions](https://pi.dev/packages/@mrclrchtr/supi-prompt-suggestions?name=supi). This adds inline while-typing autocomplete (prefix-anchored, shrink-on-type), multi-candidate cycling, streaming ghost text, scoped global/project config, and explicit modes on top of the empty-box next-prompt suggestion.
