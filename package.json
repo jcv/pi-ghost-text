@@ -1,6 +1,6 @@
 {
   "name": "pi-ghost-text",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ghost-text prompt suggestions (inline autocomplete + next-prompt) for the pi coding agent",
   "license": "MIT",
   "author": "Chris Vaughan",
@@ -31,7 +31,9 @@
     "src"
   ],
   "pi": {
-    "extensions": ["./src/index.ts"],
+    "extensions": [
+      "./src/index.ts"
+    ],
     "image": "https://raw.githubusercontent.com/jcv/pi-ghost-text/main/assets/social-preview.png"
   },
   "peerDependencies": {
