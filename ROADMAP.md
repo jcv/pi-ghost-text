@@ -21,9 +21,10 @@ logging was user-visible. Lines now append to
 `~/.pi/agent/prompt-suggestions.log`, with an `enabled` marker line written at
 config load so an absent log unambiguously means "not wired up".
 
-Still open:
+**Published to npm as `pi-ghost-text@0.1.0`** (verified via `npm view`).
 
-- Publish to npm as `pi-ghost-text`: `npm login` then `npm publish` (the account exists; this machine is not logged in).
+No open items: rename done, GitHub remote live, gallery preview live,
+streaming live-verified, debug logging opt-in, npm published.
 
 Goal: turn `extensions/prompt-suggestion.ts` into a full-quality replacement for
 `@mrclrchtr/supi-prompt-suggestions`, with more features.
