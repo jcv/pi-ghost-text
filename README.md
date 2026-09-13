@@ -12,19 +12,13 @@ As you type (or after the agent finishes and the input is empty), a dimmed predi
 ## Install
 
 ```bash
-pi install /path/to/pi-ghost-text
-```
-
-Try it without installing:
-
-```bash
-pi -e /path/to/pi-ghost-text/src/index.ts
+pi install npm:pi-ghost-text
 ```
 
 Remove it:
 
 ```bash
-pi remove /path/to/pi-ghost-text
+pi remove npm:pi-ghost-text
 ```
 
 ## Using it
