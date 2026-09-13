@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# pi project-local config (settings, sessions, installed packages)
+.pi/
+
+# npm pack artifacts
+*.tgz
+
+# macOS
+.DS_Store

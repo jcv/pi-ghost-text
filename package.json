@@ -1,0 +1,34 @@
+{
+  "name": "pi-ghost-text",
+  "version": "0.1.0",
+  "description": "Ghost-text prompt suggestions (inline autocomplete + next-prompt) for the pi coding agent",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "pi-extension",
+    "prompt-suggestions",
+    "prompt",
+    "suggestions",
+    "ghost-text",
+    "autocomplete"
+  ],
+  "files": [
+    "src"
+  ],
+  "pi": {
+    "extensions": ["./src/index.ts"],
+    "image": "https://raw.githubusercontent.com/jcv/pi-ghost-text/main/assets/social-preview.png",
+    "video": "https://raw.githubusercontent.com/jcv/pi-ghost-text/main/assets/demo.mp4"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
