@@ -1,5 +1,14 @@
 # Prompt Suggestions — replacement roadmap
 
+## Open items (2026-09-13)
+
+Rename to `pi-ghost-text` is committed and the public GitHub remote
+`jcv/pi-ghost-text` is created and pushed. Still open:
+
+- Publish to npm as `pi-ghost-text`: `npm login` then `npm publish` (the account exists; this machine is not logged in).
+- Gallery preview: add `assets/social-preview.png` (+ optional `assets/demo.mp4`), commit, push, so the `pi.image`/`pi.video` URLs resolve.
+- Live-verify token streaming (never exercised against a real model; falls back to `complete` on error, or set `"streaming": false` in the config).
+
 Goal: turn `extensions/prompt-suggestion.ts` into a full-quality replacement for
 `@mrclrchtr/supi-prompt-suggestions`, with more features.
 
@@ -108,8 +117,8 @@ drop-in replacement.
   `contextMessages`, `contextChars`, `maxPerTurn` (see README for defaults).
 - **Status: swapped in and active.** Removed both `@mrclrchtr/supi-*` packages
   from `~/.pi/agent/settings.json` (and their npm manifest + node_modules +
-  orphaned config files), then `pi install /Users/chrisv/Projects/pi-test`.
-  The package is now loaded globally as a local path (`../../Projects/pi-test`
+  orphaned config files), then `pi install /Users/chrisv/Projects/pi-ghost-text`.
+  The package is now loaded globally as a local path (`../../Projects/pi-ghost-text`
   relative to `~/.pi/agent`). To run without installing, `pi -e ./src/index.ts`
   still works.
 - **Streaming is live-unverified** (loads and type-checks, but token streaming has

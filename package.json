@@ -3,7 +3,19 @@
   "version": "0.1.0",
   "description": "Ghost-text prompt suggestions (inline autocomplete + next-prompt) for the pi coding agent",
   "license": "MIT",
+  "author": "Chris Vaughan",
   "type": "module",
+  "engines": {
+    "node": ">=23.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jcv/pi-ghost-text.git"
+  },
+  "homepage": "https://github.com/jcv/pi-ghost-text#readme",
+  "bugs": {
+    "url": "https://github.com/jcv/pi-ghost-text/issues"
+  },
   "keywords": [
     "pi-package",
     "pi",

@@ -12,19 +12,19 @@ As you type (or after the agent finishes and the input is empty), a dimmed predi
 ## Install
 
 ```bash
-pi install /path/to/pi-test
+pi install /path/to/pi-ghost-text
 ```
 
 Try it without installing:
 
 ```bash
-pi -e /path/to/pi-test/src/index.ts
+pi -e /path/to/pi-ghost-text/src/index.ts
 ```
 
 Remove it:
 
 ```bash
-pi remove /path/to/pi-test
+pi remove /path/to/pi-ghost-text
 ```
 
 ## Using it

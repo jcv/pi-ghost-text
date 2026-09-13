@@ -15,7 +15,7 @@
  *   global:  ~/.pi/agent/prompt-suggestions.json
  *   project: .pi/prompt-suggestions.json
  *
- * Install as a pi package: pi install /path/to/pi-test
+ * Install as a pi package: pi install /path/to/pi-ghost-text
  * Quick test: pi -e ./src/index.ts
  *
  * @module

@@ -204,7 +204,7 @@ export class SuggestingEditor extends CustomEditor {
 			if (seq !== this.requestSeq || ac.signal.aborted) return;
 			this.commitSuggestions(suggestions, text);
 		} catch (err) {
-			if (seq !== this.requestSeq) return;
+			if (seq !== this.requestSeq || ac.signal.aborted) return;
 			const message = err instanceof Error ? err.message : String(err);
 			const isTimeout = /timeout|timed ?out/i.test(message);
 			debug(isTimeout ? "timeout" : "error", message);
@@ -228,6 +228,7 @@ export class SuggestingEditor extends CustomEditor {
 			try {
 				return [await this.streamSingle(model, text, signal)];
 			} catch (err) {
+				if (signal.aborted) throw err; // interrupted by a newer keystroke, not a stream failure
 				const message = err instanceof Error ? err.message : String(err);
 				debug("error", `streaming failed, falling back to complete: ${message}`);
 				this.clearGhost();
