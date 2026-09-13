@@ -2,11 +2,12 @@
 
 ## Open items (2026-09-13)
 
-Rename to `pi-ghost-text` is committed and the public GitHub remote
-`jcv/pi-ghost-text` is created and pushed. Still open:
+Rename to `pi-ghost-text` is committed, the public GitHub remote
+`jcv/pi-ghost-text` is pushed, and `assets/social-preview.png` (the `pi.image`
+gallery preview and the repo's social card) is live. No demo video: the
+`pi.video` field was dropped. Still open:
 
 - Publish to npm as `pi-ghost-text`: `npm login` then `npm publish` (the account exists; this machine is not logged in).
-- Gallery preview: add `assets/social-preview.png` (+ optional `assets/demo.mp4`), commit, push, so the `pi.image`/`pi.video` URLs resolve.
 - Live-verify token streaming (never exercised against a real model; falls back to `complete` on error, or set `"streaming": false` in the config).
 
 Goal: turn `extensions/prompt-suggestion.ts` into a full-quality replacement for

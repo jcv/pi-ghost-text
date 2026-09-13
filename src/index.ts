@@ -21,7 +21,13 @@
  * @module
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import {
+	CONFIG_DIR_NAME,
+	type ExtensionAPI,
+	type ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
+import * as os from "node:os";
+import * as path from "node:path";
 import {
 	DEFAULT_CONFIG,
 	readConfig,
@@ -30,6 +36,7 @@ import {
 } from "./config.ts";
 import type { SuggestMode } from "./mode.ts";
 import { scopedOrAvailable } from "./model-selection.ts";
+import { configureDebug } from "./debug.ts";
 import { extractTextContent } from "./context.ts";
 import { SuggestingEditor } from "./editor.ts";
 
@@ -103,6 +110,7 @@ export default function (pi: ExtensionAPI): void {
 
 	pi.on("session_start", (_event, ctx) => {
 		config = readConfig(ctx.cwd);
+		configureDebug({ enabled: config.debug, logFile: defaultLogFile() });
 		if (ctx.mode !== "tui") return;
 		ctx.ui.setEditorComponent((tui, theme, keybindings) => {
 			editor = new SuggestingEditor(tui, theme, keybindings, ctx, () => config);
@@ -129,6 +137,10 @@ export default function (pi: ExtensionAPI): void {
 
 function whileTypingOrAfterTurn(mode: SuggestMode): boolean {
 	return mode !== "off";
+}
+
+function defaultLogFile(): string {
+	return path.join(os.homedir(), CONFIG_DIR_NAME, "agent", "prompt-suggestions.log");
 }
 
 function clampInt(value: number, min: number, max: number, fallback: number): number {

@@ -64,7 +64,8 @@ Stored as JSON, resolved `defaults ← global ← project`:
   "streaming": true,
   "contextMessages": 8,
   "contextChars": 600,
-  "maxPerTurn": 0
+  "maxPerTurn": 0,
+  "debug": false
 }
 ```
 
@@ -77,8 +78,9 @@ Stored as JSON, resolved `defaults ← global ← project`:
 | `contextMessages` | `8` | Recent messages included in the suggestion prompt (`0` = none) |
 | `contextChars` | `600` | Chars kept per message |
 | `maxPerTurn` | `0` | Max suggestions shown per agent turn (`0` = unlimited) |
+| `debug` | `false` | Append diagnostic lines to `~/.pi/agent/prompt-suggestions.log` |
 
-`mode`, `model`, `contextMessages`, and `contextChars` are settable from the commands above; `candidates`, `streaming`, and `maxPerTurn` are JSON-only. Commands write to the **global** scope, so a project override in `.pi/prompt-suggestions.json` takes precedence over a command-set value.
+`mode`, `model`, `contextMessages`, and `contextChars` are settable from the commands above; `candidates`, `streaming`, `maxPerTurn`, and `debug` are JSON-only. Commands write to the **global** scope, so a project override in `.pi/prompt-suggestions.json` takes precedence over a command-set value.
 
 ## Privacy
 
@@ -94,7 +96,7 @@ It is **never** sent:
 - file contents,
 - project or session metadata.
 
-Suggestions are advisory and best-effort; failures are logged to stderr with a stable category (`timeout` / `error` / `no-suggestion`) rather than surfaced.
+Suggestions are advisory and best-effort; failures are never surfaced in the UI. With `"debug": true` they are logged to `~/.pi/agent/prompt-suggestions.log` with a stable category (`timeout` / `error` / `no-suggestion`).
 
 ## Troubleshooting
 
@@ -105,7 +107,7 @@ If no suggestion appears:
 3. **While-typing suggestions** need ≥4 chars of plain text (not starting with `/` or `!`, not an `@file` completion in progress), a ~700ms pause, and the agent must be idle (not mid-response).
 4. **After-turn suggestions** only appear when the editor is empty right after the agent settles.
 5. If `maxPerTurn` is set, you may have hit the per-turn cap.
-6. Check stderr for `[prompt-suggestions]` lines — they state the reason (`timeout`, `error`, `no-suggestion`).
+6. Set `"debug": true` and check `~/.pi/agent/prompt-suggestions.log` for `[prompt-suggestions]` lines — they state the reason (`timeout`, `error`, `no-suggestion`).
 7. If the ghost flakes with streaming enabled, set `"streaming": false` to force the non-streaming path.
 
 ## Development

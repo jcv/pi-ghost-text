@@ -32,8 +32,7 @@
   ],
   "pi": {
     "extensions": ["./src/index.ts"],
-    "image": "https://raw.githubusercontent.com/jcv/pi-ghost-text/main/assets/social-preview.png",
-    "video": "https://raw.githubusercontent.com/jcv/pi-ghost-text/main/assets/demo.mp4"
+    "image": "https://raw.githubusercontent.com/jcv/pi-ghost-text/main/assets/social-preview.png"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

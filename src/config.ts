@@ -31,6 +31,8 @@ export interface Config {
 	contextChars: number;
 	/** Max suggestions shown per agent turn (0 = unlimited). */
 	maxPerTurn: number;
+	/** Append debug lines to ~/.pi/agent/prompt-suggestions.log. */
+	debug: boolean;
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -41,6 +43,7 @@ export const DEFAULT_CONFIG: Config = {
 	contextMessages: 8,
 	contextChars: 600,
 	maxPerTurn: 0,
+	debug: false,
 };
 
 function clampInt(value: unknown, min: number, max: number): number {
@@ -92,6 +95,7 @@ export function readConfig(cwd: string): Config {
 		if (typeof raw.maxPerTurn !== "undefined") {
 			merged.maxPerTurn = clampInt(raw.maxPerTurn, 0, 1_000);
 		}
+		if (typeof raw.debug === "boolean") merged.debug = raw.debug;
 		if (typeof raw.enabled === "boolean") legacyEnabled = raw.enabled;
 	}
 
