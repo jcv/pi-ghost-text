@@ -20,8 +20,9 @@ test("debug appends categorized lines when enabled", () => {
 	debug("timeout", "8000ms");
 	debug("no-suggestion");
 	const lines = fs.readFileSync(logFile, "utf8").trim().split("\n");
-	assert.equal(lines.length, 2);
-	assert.match(lines[0], /\[prompt-suggestions\] timeout: 8000ms$/);
-	assert.match(lines[1], /\[prompt-suggestions\] no-suggestion$/);
+	assert.equal(lines.length, 3);
+	assert.match(lines[0], /\[prompt-suggestions\] enabled$/);
+	assert.match(lines[1], /\[prompt-suggestions\] timeout: 8000ms$/);
+	assert.match(lines[2], /\[prompt-suggestions\] no-suggestion$/);
 	configureDebug({ enabled: false });
 });

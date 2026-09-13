@@ -29,12 +29,19 @@ let logFile: string | null = null;
 export function configureDebug(options: { enabled: boolean; logFile?: string }): void {
 	enabled = options.enabled;
 	if (options.logFile) logFile = options.logFile;
+	// Marker line so an existing log confirms debug is wired up; an absent
+	// log then unambiguously means the extension/config never loaded.
+	if (enabled) write("enabled");
 }
 
 export function debug(category: DebugCategory, detail?: string): void {
-	if (!enabled || !logFile) return;
-	const suffix = detail ? `: ${detail}` : "";
-	const line = `${new Date().toISOString()} ${PREFIX} ${category}${suffix}\n`;
+	if (!enabled) return;
+	write(detail ? `${category}: ${detail}` : category);
+}
+
+function write(message: string): void {
+	if (!logFile) return;
+	const line = `${new Date().toISOString()} ${PREFIX} ${message}\n`;
 	try {
 		fs.mkdirSync(path.dirname(logFile), { recursive: true });
 		fs.appendFileSync(logFile, line, "utf8");

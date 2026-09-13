@@ -5,10 +5,25 @@
 Rename to `pi-ghost-text` is committed, the public GitHub remote
 `jcv/pi-ghost-text` is pushed, and `assets/social-preview.png` (the `pi.image`
 gallery preview and the repo's social card) is live. No demo video: the
-`pi.video` field was dropped. Still open:
+`pi.video` field was dropped.
+
+**Token streaming is live-verified** via `scripts/live-suggest.mjs`, which
+replays the extension's exact system prompt and message shape against real
+models (deepseek-flash, claude-haiku-4-5, kimi-highspeed): both the streaming
+and `complete` paths return prefix-anchored, conversation-specific suggestions
+in ~600–900ms (kimi ~2s). A quality probe found deepseek-flash is fine for
+this; `no-suggestion` outcomes are usually the model legitimately answering
+NONE on ambiguous input.
+
+**Debug logging is opt-in** ( `"debug": true` config key, default off): pi's
+TUI captures console output into the chat area, so the old stderr `console.warn`
+logging was user-visible. Lines now append to
+`~/.pi/agent/prompt-suggestions.log`, with an `enabled` marker line written at
+config load so an absent log unambiguously means "not wired up".
+
+Still open:
 
 - Publish to npm as `pi-ghost-text`: `npm login` then `npm publish` (the account exists; this machine is not logged in).
-- Live-verify token streaming (never exercised against a real model; falls back to `complete` on error, or set `"streaming": false` in the config).
 
 Goal: turn `extensions/prompt-suggestion.ts` into a full-quality replacement for
 `@mrclrchtr/supi-prompt-suggestions`, with more features.
@@ -111,20 +126,20 @@ drop-in replacement.
   `/suggest-context`, type >4 chars and wait ~700ms for a ghost, Tab to cycle
   candidates, and confirm UP-arrow history survives `/reload`. Run unit tests with
   `npm test` (or `node --test`).
-- **Layout:** `src/` modules + `test/*.test.mjs` + `package.json` (the `pi` package)
-  + `README.md`. The old `extensions/prompt-suggestion.ts` monolith was removed.
+- **Layout:** `src/` modules + `test/*.test.mjs` + `scripts/live-suggest.mjs`
+  (live model harness) + `package.json` (the `pi` package) + `README.md`.
+  The old `extensions/prompt-suggestion.ts` monolith was removed.
 - **Config keys** (`~/.pi/agent/prompt-suggestions.json`, project override in
   `.pi/prompt-suggestions.json`): `model`, `mode`, `candidates`, `streaming`,
-  `contextMessages`, `contextChars`, `maxPerTurn` (see README for defaults).
+  `contextMessages`, `contextChars`, `maxPerTurn`, `debug` (see README for defaults).
 - **Status: swapped in and active.** Removed both `@mrclrchtr/supi-*` packages
   from `~/.pi/agent/settings.json` (and their npm manifest + node_modules +
   orphaned config files), then `pi install /Users/chrisv/Projects/pi-ghost-text`.
   The package is now loaded globally as a local path (`../../Projects/pi-ghost-text`
   relative to `~/.pi/agent`). To run without installing, `pi -e ./src/index.ts`
   still works.
-- **Streaming is live-unverified** (loads and type-checks, but token streaming has
-  not been exercised against a real model call in this session). It falls back to
-  `complete` on any error; set `"streaming": false` to force the proven path.
+- **Streaming is live-verified** (see Open items). To exercise it again:
+  `node scripts/live-suggest.mjs [provider/model-id] [partial]`.
 - **Known limitation:** `/suggest`, `/suggest-model`, `/suggest-context` always write
   to the *global* scope. If a project override exists, the global write won't change
   the effective value.

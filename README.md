@@ -7,7 +7,7 @@ As you type (or after the agent finishes and the input is empty), a dimmed predi
 ## Requirements
 
 - **Interactive TUI mode.** Suggestions are an editor feature and only appear in the interactive terminal (`pi` with no mode flag). They do not run in `-p`/`--print`, `--mode json`, or `--mode rpc`.
-- **A model with a configured API key.** With the default `"model": "auto"`, the extension picks the first available of a fast/cheap set (models matching `haiku`, `gpt-*-mini`, `flash`, or `nano`); otherwise it falls back to the active session model. Set a specific model with `/suggest-model`.
+- **A model with a configured API key.** With the default `"model": "auto"`, the extension scans the available models for a fast/cheap one, in priority order: `haiku`, then `gpt-*mini`, then `flash`, then `nano`. If none match — or if an explicit `provider/model-id` isn't found — it falls back to the active session model. Set a specific model with `/suggest-model`.
 
 ## Install
 
@@ -103,7 +103,7 @@ Suggestions are advisory and best-effort; failures are never surfaced in the UI.
 If no suggestion appears:
 
 1. Confirm the mode is not `off` — run `/suggest`.
-2. Confirm the suggestion model has an API key configured (or, for `auto`, that one of the fast/cheap models does). `/suggest-model` shows what's available.
+2. Confirm the suggestion model has an API key configured (or, for `auto`, that one of the fast/cheap models does). `/suggest-model` shows what's available. An explicit `model` that isn't found silently falls back to the active session model, so check the spelling as `provider/model-id`.
 3. **While-typing suggestions** need ≥4 chars of plain text (not starting with `/` or `!`, not an `@file` completion in progress), a ~700ms pause, and the agent must be idle (not mid-response).
 4. **After-turn suggestions** only appear when the editor is empty right after the agent settles.
 5. If `maxPerTurn` is set, you may have hit the per-turn cap.
