@@ -61,7 +61,7 @@ export default function (pi: ExtensionAPI): void {
 			if (!choice) return;
 			const mode = MODES.find((m) => m.label === choice)?.value ?? "off";
 			config.mode = mode;
-			writeGlobalConfig({ mode });
+			saveGlobalConfig({ mode }, ctx);
 			if (!whileTypingOrAfterTurn(mode)) editor?.clearGhost();
 			ctx.ui.notify(`Prompt suggestions: ${mode}`, "info");
 		},
@@ -80,7 +80,7 @@ export default function (pi: ExtensionAPI): void {
 			const picked = entries.find((e) => e.label === choice);
 			const value = picked ? picked.value : "auto";
 			config.model = value;
-			writeGlobalConfig({ model: value });
+			saveGlobalConfig({ model: value }, ctx);
 			ctx.ui.notify(`Suggestion model: ${value}`, "info");
 		},
 	});
@@ -103,7 +103,7 @@ export default function (pi: ExtensionAPI): void {
 			const charsCount = clampInt(Number(chars), 0, 10_000, config.contextChars);
 			config.contextMessages = messagesCount;
 			config.contextChars = charsCount;
-			writeGlobalConfig({ contextMessages: messagesCount, contextChars: charsCount });
+			saveGlobalConfig({ contextMessages: messagesCount, contextChars: charsCount }, ctx);
 			ctx.ui.notify(`Suggestion context: ${messagesCount} messages × ${charsCount} chars`, "info");
 		},
 	});
@@ -137,6 +137,17 @@ export default function (pi: ExtensionAPI): void {
 
 function whileTypingOrAfterTurn(mode: SuggestMode): boolean {
 	return mode !== "off";
+}
+
+/**
+ * writeGlobalConfig plus a warning when the previous file was unparseable
+ * and had to be backed up — config loss must never be silent again.
+ */
+function saveGlobalConfig(partial: Partial<Config>, ctx: ExtensionContext): void {
+	const { backupPath } = writeGlobalConfig(partial);
+	if (backupPath) {
+		ctx.ui.notify(`Existing config was unreadable; backed up to ${backupPath}`, "warning");
+	}
 }
 
 function defaultLogFile(): string {

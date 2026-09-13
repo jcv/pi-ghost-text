@@ -9,9 +9,9 @@
  */
 
 import { CONFIG_DIR_NAME } from "@earendil-works/pi-coding-agent";
-import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { readJsonFile, updateJsonFile } from "./json-file.ts";
 import { isMode, type SuggestMode } from "./mode.ts";
 
 export type { SuggestMode } from "./mode.ts";
@@ -59,26 +59,15 @@ export function projectConfigPath(cwd: string): string {
 	return path.join(cwd, CONFIG_DIR_NAME, "prompt-suggestions.json");
 }
 
-export function readJsonFile(filePath: string): Record<string, unknown> | null {
-	try {
-		const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
-		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-			return parsed as Record<string, unknown>;
-		}
-	} catch {
-		// Missing or invalid config is not an error.
-	}
-	return null;
-}
-
 export function readConfig(cwd: string): Config {
 	const merged: Config = { ...DEFAULT_CONFIG };
 	let modeSeen = false;
 	let legacyEnabled: boolean | undefined;
 
 	for (const filePath of [globalConfigPath(), projectConfigPath(cwd)]) {
-		const raw = readJsonFile(filePath);
-		if (!raw) continue;
+		const read = readJsonFile(filePath);
+		if (read.status !== "ok") continue;
+		const raw = read.value;
 		if (typeof raw.model === "string" && raw.model) merged.model = raw.model;
 		if (typeof raw.mode === "string" && isMode(raw.mode)) {
 			merged.mode = raw.mode;
@@ -104,11 +93,11 @@ export function readConfig(cwd: string): Config {
 	return merged;
 }
 
-export function writeGlobalConfig(partial: Partial<Config>): void {
-	const filePath = globalConfigPath();
-	const existing = readJsonFile(filePath) ?? {};
-	delete existing.enabled; // superseded by `mode`
-	const next = { ...existing, ...partial };
-	fs.mkdirSync(path.dirname(filePath), { recursive: true });
-	fs.writeFileSync(filePath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+/**
+ * Merge a partial config into the global config file, preserving keys not
+ * in `partial`. Returns a backup path when the previous file existed but
+ * was unparseable (its contents are preserved there, not destroyed).
+ */
+export function writeGlobalConfig(partial: Partial<Config>): { backupPath?: string } {
+	return updateJsonFile(globalConfigPath(), partial, { deleteKeys: ["enabled"] });
 }
