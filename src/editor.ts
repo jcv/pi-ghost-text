@@ -12,7 +12,7 @@ import { CustomEditor } from "@earendil-works/pi-coding-agent";
 import type { ExtensionContext, KeybindingsManager } from "@earendil-works/pi-coding-agent";
 import { streamSimple } from "@earendil-works/pi-ai/compat";
 import type { Model } from "@earendil-works/pi-ai";
-import { CURSOR_MARKER, Key, matchesKey, visibleWidth } from "@earendil-works/pi-tui";
+import { Key, matchesKey } from "@earendil-works/pi-tui";
 import type { EditorTheme, TUI } from "@earendil-works/pi-tui";
 import type { Config } from "./config.ts";
 import { afterTurnEnabled, whileTypingEnabled } from "./mode.ts";
@@ -26,8 +26,9 @@ import {
 	TEMPERATURE,
 	systemPromptFor,
 } from "./client.ts";
-import { extractSuggestion, fitSuggestionToWidth, isEligible, parseCandidates } from "./normalize.ts";
+import { extractSuggestion, isEligible, parseCandidates } from "./normalize.ts";
 import { debug } from "./debug.ts";
+import { renderGhostText } from "./render.ts";
 
 const DEBOUNCE_MS = 700;
 const STATUS_KEY = "prompt-suggestions";
@@ -348,38 +349,6 @@ export class SuggestingEditor extends CustomEditor {
 	}
 
 	override render(width: number): string[] {
-		const lines = super.render(width);
-		if (!this.ghost) return lines;
-
-		// The focused editor emits CURSOR_MARKER right before the fake cursor.
-		// Inserting the ghost after the cursor keeps this independent of the
-		// editor's internal wrap/scroll layout.
-		const idx = lines.findIndex((l) => l.includes(CURSOR_MARKER));
-		if (idx === -1) return lines;
-
-		const line = lines[idx]!;
-		const markerPos = line.indexOf(CURSOR_MARKER);
-		let pos = markerPos + CURSOR_MARKER.length;
-
-		// Skip over the inverse-video cursor glyph that follows the marker.
-		const rest = line.slice(pos);
-		if (rest.startsWith("\x1b[7m")) {
-			const end = rest.indexOf("\x1b[27m");
-			if (end !== -1) pos += end + "\x1b[27m".length;
-		}
-
-		const before = line.slice(0, pos);
-		const after = line.slice(pos);
-		if (visibleWidth(after) > 0) return lines; // only ghost at end of content
-
-		const room = width - visibleWidth(before) - 1;
-		if (room < 6) return lines;
-
-		const shown = fitSuggestionToWidth(this.ghost.replace(/\s+/g, " "), room, visibleWidth);
-
-		// Replace an equal amount of trailing padding so the line stays within width.
-		const shownWidth = visibleWidth(shown);
-		lines[idx] = before + this.dim(shown) + after.slice(shownWidth);
-		return lines;
+		return renderGhostText(super.render(width), width, this.ghost, this.cursorAtEnd(), this.dim);
 	}
 }
