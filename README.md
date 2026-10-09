@@ -107,8 +107,11 @@ If no suggestion appears:
 ## Development
 
 ```bash
-npm test   # node --test, no dependencies (requires Node ≥ 23.6)
+npm install --ignore-scripts
+npm test   # node --test (requires Node ≥ 23.6)
 ```
+
+The rendering regression tests use the real `Editor` from the `@earendil-works/pi-tui` peer dependency.
 
 ## Prior art
 
