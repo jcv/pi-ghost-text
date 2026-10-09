@@ -1,10 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CURSOR_MARKER, Editor, visibleWidth } from "@earendil-works/pi-tui";
-import { renderGhostText } from "../src/render.ts";
+import { isCursorAtEnd, renderGhostText } from "../src/render.ts";
 
 const dim = (text) => `\x1b[2m${text}\x1b[22m`;
 
+// Minimal TUI stub covering what Editor.render reads in the pi-tui version
+// pinned by package-lock.json. The synthetic-line tests below don't depend on it.
 function createEditor(text, focused = true) {
 	const editor = new Editor(
 		{ terminal: { rows: 24 }, requestRender() {} },
@@ -38,10 +40,12 @@ test("ghost text also supports the inverse-video-only cursor reset", () => {
 
 test("ghost text stays hidden when the cursor is not at the logical end", () => {
 	const editor = createEditor("abcd   ");
+	assert.equal(isCursorAtEnd(editor.getLines(), editor.getCursor()), true);
 	editor.handleInput("\x1b[D");
-	assert(editor.getCursor().col < editor.getText().length);
+	const atEnd = isCursorAtEnd(editor.getLines(), editor.getCursor());
+	assert.equal(atEnd, false);
 	const lines = editor.render(40);
-	assert.deepEqual(renderGhostText([...lines], 40, " prediction", false, dim), lines);
+	assert.deepEqual(renderGhostText([...lines], 40, " prediction", atEnd, dim), lines);
 });
 
 test("missing ghost text or focused cursor marker leaves the editor unchanged", () => {
@@ -80,4 +84,36 @@ test("wide-character suggestions on wrapped input fit the real editor cursor row
 	for (let row = 0; row < rendered.length; row++) {
 		if (row !== cursorRow) assert.equal(rendered[row], original[row]);
 	}
+});
+
+test("isCursorAtEnd requires the last logical line", () => {
+	assert.equal(isCursorAtEnd(["ab", "cd"], { line: 1, col: 2 }), true);
+	assert.equal(isCursorAtEnd(["ab", "cd"], { line: 0, col: 2 }), false);
+	assert.equal(isCursorAtEnd(["ab", "cd"], { line: 1, col: 1 }), false);
+	assert.equal(isCursorAtEnd([""], { line: 0, col: 0 }), true);
+});
+
+// Synthetic rows independent of the Editor harness.
+const row = (cursorClose, tail = " ".repeat(20)) => `abcd${CURSOR_MARKER}\x1b[7m ${cursorClose}${tail}`;
+
+for (const reset of ["\x1b[0m", "\x1b[27m", "\x1b[m", "\x1b[0;39m", "\x1b[27;22m"]) {
+	test(`ghost text renders after a cursor closed with ${JSON.stringify(reset)}`, () => {
+		const line = row(reset);
+		const width = visibleWidth(line);
+		const [rendered] = renderGhostText([line], width, " prediction", true, dim);
+		assert(rendered.includes(`${reset}${dim(" prediction")}`));
+		assert.equal(visibleWidth(rendered), width);
+	});
+}
+
+test("ghost text keeps styling around the trailing padding", () => {
+	const line = row("\x1b[0m", "\x1b[2m" + " ".repeat(20) + "\x1b[0m");
+	const [rendered] = renderGhostText([line], visibleWidth(line), " prediction", true, dim);
+	assert(rendered.endsWith("\x1b[0m"));
+	assert.equal(visibleWidth(rendered), visibleWidth(line));
+});
+
+test("ghost text leaves the row alone when content follows the cursor", () => {
+	const line = row("\x1b[0m", " ".repeat(19) + "│");
+	assert.deepEqual(renderGhostText([line], visibleWidth(line), " prediction", true, dim), [line]);
 });

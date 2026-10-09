@@ -107,11 +107,11 @@ If no suggestion appears:
 ## Development
 
 ```bash
-npm install --ignore-scripts
+npm ci --ignore-scripts
 npm test   # node --test (requires Node ≥ 23.6)
 ```
 
-The rendering regression tests use the real `Editor` from the `@earendil-works/pi-tui` peer dependency.
+The rendering regression tests use the real `Editor` from the `@earendil-works/pi-tui` peer dependency, pinned by the committed `package-lock.json`.
 
 ## Prior art
 

@@ -28,7 +28,7 @@ import {
 } from "./client.ts";
 import { extractSuggestion, isEligible, parseCandidates } from "./normalize.ts";
 import { debug } from "./debug.ts";
-import { renderGhostText } from "./render.ts";
+import { isCursorAtEnd, renderGhostText } from "./render.ts";
 
 const DEBOUNCE_MS = 700;
 const STATUS_KEY = "prompt-suggestions";
@@ -86,11 +86,7 @@ export class SuggestingEditor extends CustomEditor {
 	}
 
 	private cursorAtEnd(): boolean {
-		const lines = this.getLines();
-		const cursor = this.getCursor();
-		return (
-			cursor.line === lines.length - 1 && cursor.col >= (lines[lines.length - 1] ?? "").length
-		);
+		return isCursorAtEnd(this.getLines(), this.getCursor());
 	}
 
 	private contextOpts(): ContextWindow {
@@ -349,6 +345,8 @@ export class SuggestingEditor extends CustomEditor {
 	}
 
 	override render(width: number): string[] {
-		return renderGhostText(super.render(width), width, this.ghost, this.cursorAtEnd(), this.dim);
+		const lines = super.render(width);
+		if (!this.ghost) return lines;
+		return renderGhostText(lines, width, this.ghost, this.cursorAtEnd(), this.dim);
 	}
 }
