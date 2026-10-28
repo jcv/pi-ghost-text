@@ -5,6 +5,25 @@ import { isCursorAtEnd, renderGhostText } from "../src/render.ts";
 
 const dim = (text) => `\x1b[2m${text}\x1b[22m`;
 
+// pi-tui >=1.4 draws the hardware cursor inside zero-width APC markers
+// (`ESC _ pi:fc BEL` ... `ESC _ pi:/fc BEL`) and resolves them to inverse video
+// later; older versions wrote the SGR spelling inline. Detect whichever the
+// installed pi-tui emits so these assertions track the real host rather than a
+// pinned version.
+function closedCursor(line) {
+	const at = line.indexOf(CURSOR_MARKER);
+	if (at === -1) return null;
+	const rest = line.slice(at + CURSOR_MARKER.length);
+	const apc = /^\x1b_pi:fc\x07[\s\S]*?\x1b_pi:\/fc\x07/.exec(rest);
+	if (apc) return CURSOR_MARKER + apc[0];
+	const sgr = /^\x1b\[7m[\s\S]*?\x1b\[(?:0|27|)m/.exec(rest);
+	if (sgr) return CURSOR_MARKER + sgr[0];
+	return null;
+}
+
+// Synthetic rows independent of the Editor harness.
+const row = (cursorClose, tail = " ".repeat(20)) => `abcd${CURSOR_MARKER}\x1b[7m ${cursorClose}${tail}`;
+
 // Minimal TUI stub covering what Editor.render reads in the pi-tui version
 // pinned by package-lock.json. The synthetic-line tests below don't depend on it.
 function createEditor(text, focused = true) {
@@ -21,21 +40,29 @@ test("ghost text renders after Pi's reset cursor without treating padding as con
 	const editor = createEditor("abcd");
 	const lines = editor.render(40);
 	const original = [...lines];
-	assert(lines[1].includes(`${CURSOR_MARKER}\x1b[7m \x1b[0m`));
+	const cursor = closedCursor(lines[1]);
+	assert.notEqual(cursor, null, "editor emits a closed fake cursor after CURSOR_MARKER");
 	assert.equal(visibleWidth(lines[1]), 40);
 
 	const rendered = renderGhostText(lines, 40, " prediction", true, dim);
-	assert(rendered[1].includes(`\x1b[7m \x1b[0m${dim(" prediction")}`));
+	assert(rendered[1].includes(`${cursor}${dim(" prediction")}`));
 	assert.equal(visibleWidth(rendered[1]), 40);
 	assert.equal(rendered[0], original[0]);
 	assert.equal(rendered[2], original[2]);
 });
 
 test("ghost text also supports the inverse-video-only cursor reset", () => {
-	const lines = createEditor("abcd").render(40).map((line) => line.replaceAll("\x1b[0m", "\x1b[27m"));
-	const rendered = renderGhostText(lines, 40, " prediction", true, dim);
-	assert(rendered[1].includes(`\x1b[7m \x1b[27m${dim(" prediction")}`));
-	assert.equal(visibleWidth(rendered[1]), 40);
+	const line = row("\x1b[27m");
+	const rendered = renderGhostText([line], visibleWidth(line), " prediction", true, dim);
+	assert(rendered[0].includes(`\x1b[27m${dim(" prediction")}`));
+	assert.equal(visibleWidth(rendered[0]), visibleWidth(line));
+});
+
+test("ghost text also supports the APC fake-cursor markers used by pi-tui >= 1.4", () => {
+	const line = `abcd${CURSOR_MARKER}\x1b_pi:fc\x07 \x1b_pi:/fc\x07${" ".repeat(15)}`;
+	const rendered = renderGhostText([line], visibleWidth(line), " prediction", true, dim);
+	assert(rendered[0].includes(`\x1b_pi:/fc\x07${dim(" prediction")}`));
+	assert.equal(visibleWidth(rendered[0]), visibleWidth(line));
 });
 
 test("ghost text stays hidden when the cursor is not at the logical end", () => {
@@ -93,9 +120,6 @@ test("isCursorAtEnd requires the last logical line", () => {
 	assert.equal(isCursorAtEnd([""], { line: 0, col: 0 }), true);
 });
 
-// Synthetic rows independent of the Editor harness.
-const row = (cursorClose, tail = " ".repeat(20)) => `abcd${CURSOR_MARKER}\x1b[7m ${cursorClose}${tail}`;
-
 for (const reset of ["\x1b[0m", "\x1b[27m", "\x1b[m", "\x1b[0;39m", "\x1b[27;22m"]) {
 	test(`ghost text renders after a cursor closed with ${JSON.stringify(reset)}`, () => {
 		const line = row(reset);
@@ -113,7 +137,29 @@ test("ghost text keeps styling around the trailing padding", () => {
 	assert.equal(visibleWidth(rendered), visibleWidth(line));
 });
 
-test("ghost text leaves the row alone when content follows the cursor", () => {
+test("ghost text draws inside a framed editor and preserves its border", () => {
+	// pi-pretty-tui wraps every editor row in border columns, so the row after
+	// the cursor is padding followed by a `│`. Requiring spaces alone dropped the
+	// ghost entirely whenever that frame was active.
 	const line = row("\x1b[0m", " ".repeat(19) + "│");
+	const width = visibleWidth(line);
+	const [rendered] = renderGhostText([line], width, " prediction", true, dim);
+	assert(rendered.includes(dim(" prediction")));
+	assert(rendered.endsWith("│"), "frame border survives");
+	assert.equal(visibleWidth(rendered), width);
+});
+
+test("ghost text respects a styled frame border from pi-pretty-tui", () => {
+	const border = (text) => `\x1b[36m${text}\x1b[0m`;
+	const line = `│abcd${CURSOR_MARKER}\x1b[7m \x1b[0m${" ".repeat(33)}${border("│")}`;
+	const width = visibleWidth(line);
+	const [rendered] = renderGhostText([line], width, " prediction", true, dim);
+	assert(rendered.includes(dim(" prediction")));
+	assert(rendered.endsWith(border("│")));
+	assert.equal(visibleWidth(rendered), width);
+});
+
+test("ghost text leaves the row alone when content sits directly after the cursor", () => {
+	const line = row("\x1b[0m", "x" + " ".repeat(18));
 	assert.deepEqual(renderGhostText([line], visibleWidth(line), " prediction", true, dim), [line]);
 });
