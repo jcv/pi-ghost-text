@@ -70,7 +70,7 @@ Stored as JSON, resolved `defaults ← global ← project`:
 | `candidates` | `1` | Alternatives to fetch (1–3); `Tab` cycles them |
 | `streaming` | `true` | Stream the single suggestion token-by-token (ignored when `candidates > 1`) |
 | `contextMessages` | `8` | Recent messages included in the suggestion prompt (`0` = none) |
-| `contextChars` | `600` | Chars kept per message |
+| `contextChars` | `600` | Char budget per message; long messages keep both ends (see below) |
 | `maxPerTurn` | `0` | Max suggestions shown per agent turn (`0` = unlimited) |
 | `debug` | `false` | Append diagnostic lines to `~/.pi/agent/prompt-suggestions.log` |
 
@@ -81,7 +81,7 @@ Stored as JSON, resolved `defaults ← global ← project`:
 When enabled, the suggestion model receives only:
 
 - the text you have typed so far, and
-- the last `contextMessages` user/assistant messages, each trimmed to `contextChars` characters.
+- the last `contextMessages` user/assistant messages, each held to `contextChars` characters. A message over budget keeps both ends — roughly a third at the front and two thirds at the back, joined by `…` — because a reply's opening restates the problem while its conclusion names the file, the command, or the next step.
 
 It is **never** sent:
 
