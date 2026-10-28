@@ -6,7 +6,14 @@
  * @module
  */
 
-export const MAX_SUGGESTION_GRAPHEMES = 300;
+/**
+ * Ceiling on a usable suggestion.
+ *
+ * Serves as a runaway guard, not a style limit: a prompt the user expands into a
+ * short paragraph is legitimate, so this is generous enough for ~350 words while
+ * still rejecting a model that rambles.
+ */
+export const MAX_SUGGESTION_GRAPHEMES = 2000;
 export const MIN_CHARS = 4;
 
 const NO_SUGGESTION = /^NONE$/i;
@@ -96,18 +103,39 @@ export function normalizeSuggestionText(text: string): string | null {
 }
 
 /**
+ * Why a raw model response produced no usable suggestion.
+ *
+ * Diagnostic only. The commit path logs this so "no ghost appeared" points at a
+ * branch instead of leaving one opaque `no-suggestion` line.
+ */
+export type RejectionReason = "none" | "prefix-mismatch" | "identity" | "usable";
+
+function classifySuggestion(
+	rawText: string,
+	partial: string,
+): { text: string | null; reason: RejectionReason } {
+	const text = normalizeSuggestionText(rawText);
+	if (!text) return { text: null, reason: "none" };
+
+	if (partial) {
+		// The model must carry the typed text forward, and must add something.
+		if (!text.startsWith(partial)) return { text: null, reason: "prefix-mismatch" };
+		if (!text.slice(partial.length).trim()) return { text: null, reason: "identity" };
+	}
+	return { text, reason: "usable" };
+}
+
+/**
  * Extract a suggestion from raw model text, validating the partial-input
  * prefix contract. Returns null when there is no usable suggestion.
  */
 export function extractSuggestion(rawText: string, partial: string): string | null {
-	const text = normalizeSuggestionText(rawText);
-	if (!text) return null;
+	return classifySuggestion(rawText, partial).text;
+}
 
-	if (partial) {
-		if (!text.startsWith(partial)) return null;
-		if (!text.slice(partial.length).trim()) return null;
-	}
-	return text;
+/** Which branch rejected a raw response — for diagnostics, not logic. */
+export function rejectionReason(rawText: string, partial: string): RejectionReason {
+	return classifySuggestion(rawText, partial).reason;
 }
 
 /** Whether the current editor text is eligible for a suggestion. */

@@ -7,6 +7,7 @@ import {
 	isEligible,
 	normalizeSuggestionText,
 	parseCandidates,
+	rejectionReason,
 	splitGraphemes,
 	truncateGraphemes,
 	truncateToWidth,
@@ -129,4 +130,34 @@ test("parseCandidates caps the number of candidates", () => {
 
 test("parseCandidates returns a single candidate when no separator", () => {
 	assert.deepEqual(parseCandidates("just one suggestion", 3), ["just one suggestion"]);
+});
+
+// ── Rejection reasons (diagnostics) ────────────────────────────────────────
+
+test("rejectionReason names the branch that rejected a response", () => {
+	assert.equal(rejectionReason("NONE", "run the"), "none");
+	assert.equal(rejectionReason("", "run the"), "none");
+	assert.equal(rejectionReason("run the tests", "run the"), "usable");
+});
+
+test("rejectionReason separates a prefix violation from a verbatim echo", () => {
+	// Model rewrote the prompt instead of continuing it.
+	assert.equal(rejectionReason("commit the fix", "now commit"), "prefix-mismatch");
+	// Model returned exactly what was typed -- nothing to ghost.
+	assert.equal(rejectionReason("run the", "run the"), "identity");
+	assert.equal(rejectionReason("  run the  ", "run the"), "identity");
+});
+
+test("rejectionReason agrees with extractSuggestion", () => {
+	const cases = [
+		["NONE", "run the"],
+		["run the tests", "run the"],
+		["commit the fix", "now commit"],
+		["run the", "run the"],
+		["run the tests and commit", "run the"],
+	];
+	for (const [raw, partial] of cases) {
+		const usable = extractSuggestion(raw, partial) !== null;
+		assert.equal(rejectionReason(raw, partial) === "usable", usable, `${raw} / ${partial}`);
+	}
 });

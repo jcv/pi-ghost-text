@@ -42,6 +42,7 @@ When `candidates` is `1` (the default), `Tab` simply accepts. Set `candidates` t
 | `/suggest` | Choose mode: `both`, `while-typing`, `after-turn`, or `off` |
 | `/suggest-model` | Pick the suggestion model (or `auto` to prefer a fast, cheap one) |
 | `/suggest-context` | Set the context window (messages × chars per message) |
+| `/suggest-sampling` | Set reasoning effort, max tokens, and temperature |
 
 ## Configuration
 
@@ -59,7 +60,10 @@ Stored as JSON, resolved `defaults ← global ← project`:
   "contextMessages": 8,
   "contextChars": 600,
   "maxPerTurn": 0,
-  "debug": false
+  "debug": false,
+  "reasoning": "off",
+  "maxTokens": 2048,
+  "temperature": 0.3
 }
 ```
 
@@ -73,8 +77,27 @@ Stored as JSON, resolved `defaults ← global ← project`:
 | `contextChars` | `600` | Chars kept per message |
 | `maxPerTurn` | `0` | Max suggestions shown per agent turn (`0` = unlimited) |
 | `debug` | `false` | Append diagnostic lines to `~/.pi/agent/prompt-suggestions.log` |
+| `reasoning` | `"off"` | Reasoning/thinking effort: `"off"`, `"minimal"`, `"low"`, `"medium"`, `"high"`, `"xhigh"`, or `"max"` |
+| `maxTokens` | `2048` | Max tokens per suggestion (1–32768); multiplied by the candidate count when `candidates > 1`. See below. |
+| `temperature` | `0.3` | Sampling temperature (0–2) |
 
-`mode`, `model`, `contextMessages`, and `contextChars` are settable from the commands above; `candidates`, `streaming`, `maxPerTurn`, and `debug` are JSON-only. Commands write to the **global** scope, so a project override in `.pi/prompt-suggestions.json` takes precedence over a command-set value.
+### Reasoning models need budget for both
+
+A reasoning model spends `maxTokens` thinking before it writes any text. If the
+cap is reached inside that phase the response comes back with an empty text
+channel and no ghost is drawn — which looks identical to the extension being
+broken. Measured on `nvidia/nemotron-3-nano-30b-a3b`: ~150–200 reasoning tokens
+before the first character regardless of effort level.
+
+So `reasoning` other than `"off"` needs a budget above `512`; the extension warns
+at session start when the combination is starved. Budget is a cap, not a spend,
+so unused tokens are free.
+
+Reasoning also costs latency — the same completion measured ~0.46 s with
+`reasoning: "off"` and ~1.2–2.2 s at `"low"`. For ghost text that appears as you
+type, `"off"` is usually the better trade.
+
+`mode`, `model`, `contextMessages`, `contextChars`, `reasoning`, `maxTokens`, and `temperature` are settable from the commands above; `candidates`, `streaming`, `maxPerTurn`, and `debug` are JSON-only. Commands write to the **global** scope, so a project override in `.pi/prompt-suggestions.json` takes precedence over a command-set value.
 
 ## Privacy
 

@@ -10,6 +10,7 @@
  * - /suggest: choose mode (off / after-turn / while-typing / both)
  * - /suggest-model: pick the model used for suggestions
  * - /suggest-context: set context window (messages + chars per message)
+ * - /suggest-sampling: set reasoning effort, max tokens, and temperature
  *
  * Config (resolved defaults <- global <- project):
  *   global:  ~/.pi/agent/prompt-suggestions.json
@@ -35,6 +36,14 @@ import {
 	type Config,
 } from "./config.ts";
 import type { SuggestMode } from "./mode.ts";
+import {
+	clampMaxTokens,
+	clampTemperature,
+	isReasoningSetting,
+	MIN_REASONING_BUDGET,
+	REASONING_SETTINGS,
+	reasoningStarvedBudget,
+} from "./sampling.ts";
 import { scopedOrAvailable } from "./model-selection.ts";
 import { configureDebug } from "./debug.ts";
 import { extractTextContent } from "./context.ts";
@@ -108,10 +117,50 @@ export default function (pi: ExtensionAPI): void {
 		},
 	});
 
+	pi.registerCommand("suggest-sampling", {
+		description: "Set reasoning effort, max tokens, and temperature for suggestions",
+		handler: async (_args, ctx) => {
+			const pickedReasoning = await ctx.ui.select(
+				`Reasoning effort (current: ${config.reasoning}):`,
+				[...REASONING_SETTINGS],
+			);
+			if (pickedReasoning === undefined) return;
+			const reasoning = isReasoningSetting(pickedReasoning)
+				? pickedReasoning
+				: config.reasoning;
+
+			const tokens = await ctx.ui.input("Max tokens per suggestion", String(config.maxTokens));
+			if (tokens === undefined) return;
+			const maxTokens = clampMaxTokens(parseNumber(tokens), config.maxTokens);
+
+			const temp = await ctx.ui.input("Temperature (0-2)", String(config.temperature));
+			if (temp === undefined) return;
+			const temperature = clampTemperature(parseNumber(temp), config.temperature);
+
+			config.reasoning = reasoning;
+			config.maxTokens = maxTokens;
+			config.temperature = temperature;
+			saveGlobalConfig({ reasoning, maxTokens, temperature }, ctx);
+			ctx.ui.notify(
+				`Suggestion sampling: reasoning=${reasoning}, maxTokens=${maxTokens}, temperature=${temperature}`,
+				"info",
+			);
+		},
+	});
+
 	pi.on("session_start", (_event, ctx) => {
 		config = readConfig(ctx.cwd);
 		configureDebug({ enabled: config.debug, logFile: defaultLogFile() });
 		if (ctx.mode !== "tui") return;
+		// A reasoning model spends the token budget thinking first. If the cap is
+		// reached inside that phase the response carries no text at all, and the
+		// ghost silently never appears -- say so instead of looking broken.
+		if (reasoningStarvedBudget(config.reasoning, config.maxTokens)) {
+			ctx.ui.notify(
+				`Prompt suggestions: reasoning="${config.reasoning}" with maxTokens=${config.maxTokens} leaves no room for text. Use /suggest-sampling to raise maxTokens (>= ${MIN_REASONING_BUDGET}) or set reasoning to "off".`,
+				"warning",
+			);
+		}
 		ctx.ui.setEditorComponent((tui, theme, keybindings) => {
 			editor = new SuggestingEditor(tui, theme, keybindings, ctx, () => config);
 			seedHistoryFromSession(editor, ctx);
@@ -157,6 +206,13 @@ function defaultLogFile(): string {
 function clampInt(value: number, min: number, max: number, fallback: number): number {
 	if (!Number.isFinite(value)) return fallback;
 	return Math.min(max, Math.max(min, Math.floor(value)));
+}
+
+/** Blank input and non-numeric text both yield NaN so the clamp keeps the current value. */
+function parseNumber(raw: string): number {
+	const trimmed = raw.trim();
+	if (trimmed === "") return Number.NaN;
+	return Number(trimmed);
 }
 
 /**

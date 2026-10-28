@@ -13,6 +13,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { readJsonFile, updateJsonFile } from "./json-file.ts";
 import { isMode, type SuggestMode } from "./mode.ts";
+import { MAX_TOKENS, TEMPERATURE } from "./client.ts";
+import {
+	clampMaxTokens,
+	clampTemperature,
+	isReasoningSetting,
+	type ReasoningSetting,
+} from "./sampling.ts";
 
 export type { SuggestMode } from "./mode.ts";
 
@@ -33,6 +40,12 @@ export interface Config {
 	maxPerTurn: number;
 	/** Append debug lines to ~/.pi/agent/prompt-suggestions.log. */
 	debug: boolean;
+	/** Reasoning/thinking effort for the request; "off" sends no reasoning directive. */
+	reasoning: ReasoningSetting;
+	/** Max tokens for one suggestion; multiplied by the candidate count when > 1. */
+	maxTokens: number;
+	/** Sampling temperature for the request, clamped to [0, 2]. */
+	temperature: number;
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -44,6 +57,9 @@ export const DEFAULT_CONFIG: Config = {
 	contextChars: 600,
 	maxPerTurn: 0,
 	debug: false,
+	reasoning: "off",
+	maxTokens: MAX_TOKENS,
+	temperature: TEMPERATURE,
 };
 
 function clampInt(value: unknown, min: number, max: number): number {
@@ -85,6 +101,13 @@ export function readConfig(cwd: string): Config {
 			merged.maxPerTurn = clampInt(raw.maxPerTurn, 0, 1_000);
 		}
 		if (typeof raw.debug === "boolean") merged.debug = raw.debug;
+		if (isReasoningSetting(raw.reasoning)) merged.reasoning = raw.reasoning;
+		if (typeof raw.maxTokens !== "undefined") {
+			merged.maxTokens = clampMaxTokens(raw.maxTokens, merged.maxTokens);
+		}
+		if (typeof raw.temperature !== "undefined") {
+			merged.temperature = clampTemperature(raw.temperature, merged.temperature);
+		}
 		if (typeof raw.enabled === "boolean") legacyEnabled = raw.enabled;
 	}
 

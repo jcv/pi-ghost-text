@@ -21,17 +21,28 @@ import { buildUserMessage, type ContextWindow } from "./context.ts";
 import {
 	classifyResponse,
 	GENERATION_TIMEOUT_MS,
-	MAX_TOKENS,
 	SYSTEM_PROMPT,
-	TEMPERATURE,
 	systemPromptFor,
 } from "./client.ts";
-import { extractSuggestion, isEligible, parseCandidates } from "./normalize.ts";
+import { extractSuggestion, isEligible, parseCandidates, rejectionReason } from "./normalize.ts";
 import { debug } from "./debug.ts";
 import { isCursorAtEnd, renderGhostText } from "./render.ts";
+import { reasoningLevel } from "./sampling.ts";
 
 const DEBOUNCE_MS = 700;
 const STATUS_KEY = "prompt-suggestions";
+
+/**
+ * Name the branch that rejected a response, so the debug log distinguishes
+ * "the model declined" from "the model ignored the typed prefix" from
+ * "it just repeated what was already typed".
+ */
+function describeRejections(raw: string[], text: string): string {
+	if (raw.length === 0) return "empty response";
+	const reasons = raw.map((candidate) => rejectionReason(candidate, text));
+	const snippet = (raw[0] ?? "").slice(0, 80);
+	return `${reasons.join(",")} | raw=${JSON.stringify(snippet)}`;
+}
 
 export class SuggestingEditor extends CustomEditor {
 	private ghost: string | null = null; // visible remainder shown dimmed
@@ -223,19 +234,24 @@ export class SuggestingEditor extends CustomEditor {
 	): Promise<string[]> {
 		if (config.candidates === 1 && config.streaming) {
 			try {
-				return [await this.streamSingle(model, text, signal)];
+				return [await this.streamSingle(model, text, signal, config)];
 			} catch (err) {
 				if (signal.aborted) throw err; // interrupted by a newer keystroke, not a stream failure
 				const message = err instanceof Error ? err.message : String(err);
 				debug("error", `streaming failed, falling back to complete: ${message}`);
 				this.clearGhost();
-				return this.completeCandidates(model, text, signal, 1);
+				return this.completeCandidates(model, text, signal, 1, config);
 			}
 		}
-		return this.completeCandidates(model, text, signal, config.candidates);
+		return this.completeCandidates(model, text, signal, config.candidates, config);
 	}
 
-	private async streamSingle(model: Model<any>, text: string, signal: AbortSignal): Promise<string> {
+	private async streamSingle(
+		model: Model<any>,
+		text: string,
+		signal: AbortSignal,
+		config: Config,
+	): Promise<string> {
 		const auth = await this.ctx.modelRegistry.getApiKeyAndHeaders(model);
 		if (!auth.ok) throw new Error(auth.error);
 
@@ -247,8 +263,9 @@ export class SuggestingEditor extends CustomEditor {
 			headers: auth.headers,
 			env: auth.env,
 			signal,
-			maxTokens: MAX_TOKENS,
-			temperature: TEMPERATURE,
+			maxTokens: config.maxTokens,
+			temperature: config.temperature,
+			reasoning: reasoningLevel(config.reasoning),
 			timeoutMs: GENERATION_TIMEOUT_MS,
 		});
 
@@ -272,14 +289,16 @@ export class SuggestingEditor extends CustomEditor {
 		text: string,
 		signal: AbortSignal,
 		count: number,
+		config: Config,
 	): Promise<string[]> {
 		const response = await this.ctx.modelRegistry.complete(model, {
 			systemPrompt: systemPromptFor(count),
 			messages: [buildUserMessage(this.ctx, text, this.contextOpts())],
 		}, {
 			signal,
-			maxTokens: MAX_TOKENS * count,
-			temperature: TEMPERATURE,
+			maxTokens: config.maxTokens * count,
+			temperature: config.temperature,
+			reasoningEffort: reasoningLevel(config.reasoning),
 			timeoutMs: GENERATION_TIMEOUT_MS,
 		});
 
@@ -319,7 +338,7 @@ export class SuggestingEditor extends CustomEditor {
 		}
 
 		if (candidates.length === 0) {
-			debug("no-suggestion");
+			debug("no-suggestion", describeRejections(raw, text));
 			this.clearGhost();
 			return;
 		}
