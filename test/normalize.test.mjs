@@ -5,6 +5,7 @@ import {
 	extractSuggestion,
 	fitSuggestionToWidth,
 	isEligible,
+	isNoneSentinelPrefix,
 	normalizeSuggestionText,
 	parseCandidates,
 	splitGraphemes,
@@ -129,4 +130,16 @@ test("parseCandidates caps the number of candidates", () => {
 
 test("parseCandidates returns a single candidate when no separator", () => {
 	assert.deepEqual(parseCandidates("just one suggestion", 3), ["just one suggestion"]);
+});
+
+// ── NONE sentinel suppression while streaming ──────────────────────────────
+
+test("isNoneSentinelPrefix hides incomplete NONE sentinels only", () => {
+	for (const partial of ["N", "n", "NO", "no", "non", "NONE", "none", " none "]) {
+		assert.equal(isNoneSentinelPrefix(partial), true, partial);
+	}
+	// Anything that is not heading for the sentinel shows immediately.
+	for (const text of ["", "  ", "none of the tests pass", "run", "NONE of these"]) {
+		assert.equal(isNoneSentinelPrefix(text), false, text);
+	}
 });
