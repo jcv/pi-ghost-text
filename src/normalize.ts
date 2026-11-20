@@ -110,6 +110,19 @@ export function extractSuggestion(rawText: string, partial: string): string | nu
 	return text;
 }
 
+/**
+ * True while streamed text is still an incomplete NONE sentinel ("N", "no", "none").
+ *
+ * The streaming path shows model output as it arrives, so without this the
+ * sentinel flashes in the input box and then vanishes, which reads as a broken
+ * ghost rather than as "the model declined".
+ */
+export function isNoneSentinelPrefix(text: string): boolean {
+	const trimmed = text.trim();
+	if (!trimmed || trimmed.length > "NONE".length) return false;
+	return "NONE".startsWith(trimmed.toUpperCase());
+}
+
 /** Whether the current editor text is eligible for a suggestion. */
 export function isEligible(text: string, allowEmpty: boolean): boolean {
 	if (text.startsWith("/") || text.startsWith("!")) return false; // commands

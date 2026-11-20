@@ -26,7 +26,7 @@ import {
 	TEMPERATURE,
 	systemPromptFor,
 } from "./client.ts";
-import { extractSuggestion, isEligible, parseCandidates } from "./normalize.ts";
+import { extractSuggestion, isEligible, isNoneSentinelPrefix, parseCandidates } from "./normalize.ts";
 import { debug } from "./debug.ts";
 import { isCursorAtEnd, renderGhostText } from "./render.ts";
 
@@ -154,9 +154,10 @@ export class SuggestingEditor extends CustomEditor {
 
 	private onTextChanged(text: string): void {
 		// Shrink the ghost locally while the typed text still prefixes the suggestion.
+		// An empty baseText is the after-turn case: the first character typed must
+		// shrink the ghost, not drop it.
 		if (
 			this.suggestionFull &&
-			this.baseText &&
 			text.startsWith(this.baseText) &&
 			this.suggestionFull.startsWith(text)
 		) {
@@ -293,6 +294,7 @@ export class SuggestingEditor extends CustomEditor {
 
 	/** Show the accumulated text as a partial ghost while streaming. */
 	private updateStreamingGhost(acc: string, baseText: string): void {
+		if (isNoneSentinelPrefix(acc)) return; // don't flash the NONE sentinel
 		if (this.getText() !== baseText) return; // user typed more; ignore this stream
 		if (!acc.startsWith(baseText)) return; // model deviated; wait for final validation
 		const remainder = acc.slice(baseText.length);

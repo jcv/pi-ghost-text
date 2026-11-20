@@ -23,7 +23,8 @@ Rules:
 - If partial input is provided, your output MUST begin with that exact text, unchanged.
 - Keep it short: one line, at most two sentences.
 - Be specific to the conversation. Prefer concrete next steps (run the tests, commit, fix the file just discussed) over generic requests.
-- If there is no confident prediction, output exactly: NONE`;
+- Coding sessions almost always have an obvious next step (run or fix the tests, commit, open the file just discussed, continue to the next task). Propose that next step.
+- Output NONE only when the work is clearly finished and nothing is pending.`;
 
 export type ResponseClass =
 	| { ok: true; text: string }
